@@ -1,22 +1,42 @@
-name: CI Pipeline
+name: CI Pipeline (Test & Build)
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build-test:
+  # JOB 1: Esegue i test automatici sul codice Python
+  test-code:
     runs-on: ubuntu-latest
     steps:
-      # 1. Scarica il codice dal repo
-      - name: Checkout code
+      - name: Checkout del codice
         uses: actions/checkout@v3
 
-      # 2. Prova a costruire l'immagine Docker
-      # Se il Dockerfile è sbagliato, questo step fallisce e ti arriva la mail di errore
-      - name: Build Docker Image
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Installazione Librerie
+        run: |
+          pip install flask redis
+      
+      - name: Esecuzione Test Automatici
+        # Qui lancia lo script che abbiamo creato
+        run: python -m unittest app/test_app.py
+
+  # JOB 2: Costruisce l'immagine Docker (Parte solo se i test passano)
+  build-image:
+    needs: test-code  # <--- IMPORTANTE: Aspetta che i test finiscano!
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del codice
+        uses: actions/checkout@v3
+
+      - name: Build dell'immagine Docker
         run: docker build -t my-converter .
       
-      # 3. (Opzionale) Test banale
-      - name: Simple Check
-        run: echo "Se vedi questo, l'immagine è stata costruita correttamente!"
+      - name: Verifica finale
+        run: echo "Test passati e Immagine costruita correttamente! 🚀"
